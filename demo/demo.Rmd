@@ -188,6 +188,17 @@ spec.boots(AirPassengers, 1000, c(5,5))
 
 For the `AirPassengers` dataset, it seems like both the `mvspec` and `spec.boots` functions agree that frequencies 1 and 2 are dominant. However, it is way more obvious looking at the plot of `spec.boots`. 
 
+```{r echo=TRUE}
+spec.boots(AirPassengers, 10, c(5,5))
+spec.boots(AirPassengers, 100, c(5,5))
+spec.boots(AirPassengers, 1000, 2)
+spec.boots(AirPassengers, 1000, 8)
+spec.boots(AirPassengers, 1000, c(2,2))
+spec.boots(AirPassengers, 1000, c(8,8))
+```
+
+One thing to note here is that the result heavily depends on the global bandwidth. 
+
 ```{r}
 data(Inflation)
 tsplot(Inflation$CPIPctDiff, col=4, lwd=2)
@@ -197,6 +208,7 @@ mvspec(Inflation$CPIPctDiff, col=4, lwd=2, log="y", spans=c(4,4))
 
 kd = kernel("daniell", c(5,5))
 spec.boots(ts(Inflation$CPIPctDiff) , 1000, kd)
+spec.boots(ts(Inflation$CPIPctDiff) , 1000, c(2,2))
 ```
 
 The spectral density of the CPI returns peaks around frequency 0.1 for both datasets. Here, it is easier to tell which frequencies matter since we have a baseline to rely on. One drawback to this approach, as you can also tell from the two plots of `spec.boots` and `mvspec`, is that some of the peaks are flattened and spread out to others due to averaging. 
