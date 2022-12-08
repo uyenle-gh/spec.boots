@@ -21,9 +21,9 @@ The algorithm is as follows:
 
 3. Compute and Rescale Residuals: Compute the residuals $\hat{\epsilon_k} = \frac{I(\omega_k)}{\hat{f}(\omega_k, h)}$ for $k = 1, \dots, n$ and rescale by dividing by the mean residual.
 
-4. Bootstrap Residuals: Resample the residuals $\hat{\epsilon_1}, \dots, \hat{\epsilon_n}$ to get an independent sample of $\hat{\epsilon_k^{*}}$. 
+4. Bootstrap Residuals: Resample the residuals $\hat{\epsilon_1}, \dots, \hat{\epsilon_n}$ to get $\hat{\epsilon_1}', \dots, \hat{\epsilon_n}'$. 
 
-5. Bootstrap Estimate: Compute a new bootstrap kernel spectral density $\hat{f}(\omega_k, h)$ corresponding to the new periodogram $I(\omega_k, h) = \hat{f}(\omega_k, h) \hat{\epsilon}_k^*$. 
+5. Bootstrap Estimate: Compute a new bootstrap kernel spectral density $\hat{f}(\omega_k, h)'$ corresponding to the new periodogram $I(\omega_k, h)' = \hat{f}(\omega_k, h) \hat{\epsilon}_k^*$. 
 
 6. Repeat steps 4 and 5 a large amount of times. 
 
