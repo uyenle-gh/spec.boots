@@ -11,6 +11,24 @@ In time series spectral analysis, we often want to identify the dominant frequen
 devtools::install_github("uyenle-gh/spec.boots")
 ```
 
+## How it works 
+
+The algorithm is as follows: 
+
+1. Centering 
+
+2. Initial Estimate: Compute the periodogram $I(\omega_k) for $k=1, \dots, n$ and a smoothed spectral density $\hat{f}(\omega_k, h) where $h > 0$ is a global bandwidth not dependent on $\omega$.
+
+3. Compute and Rescale Residuals: Compute the residuals $\hat{\epsilon}_k = \frac{I(\omega_k)}{\hat{f}(\omega_k, h)}$ for $k = 1, \dots, n$ and rescale by dividing by the mean residual.
+
+4. Bootstrap Residuals: Resample the residuals $\hat{\epsilon}_1, \dots, \hat{\epsilon}_n$ to get $\hat{\epsilon}_1^*, \dots, \hat{\epsilon}_n^*$. 
+
+5. Bootstrap Estimate: Compute a new bootstrap kernel spectral density $\hat{f}^*(\omega_k, h)$ corresponding to the new periodogram $I^*(\omega_k, h) = \hat{f}(\omega_k, h) \hat{\epsilon}_k^*$. 
+
+6. Repeat steps 4 and 5 a large amount of times. 
+
+7. Create a confidence interval for the bootstrap spectral density at all frequencies. 
+
 ## Demo
 
 The `spec.boots` function in the package allows us to create a confidence interval for the spectral density of a time series object. 
