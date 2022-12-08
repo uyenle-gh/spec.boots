@@ -11,7 +11,7 @@ In time series spectral analysis, we often want to identify the dominant frequen
 devtools::install_github("uyenle-gh/spec.boots")
 ```
 
-# Main Feature 
+# Demo
 
 The `spec.boots` function in the package allows us to create a confidence interval for the spectral density of a time series object. 
 
@@ -21,6 +21,10 @@ data("AirPassengers")
 tsplot(AirPassengers, col=4, lwd=2)
 spec.boots(AirPassengers, 1000, c(5,5))
 ```
+
+![AirPassengers][img/AirPassengers.png]
+
+![Bootstrap Spectrum][img/AirPassengersSpec.png]
 
 # References
 
