@@ -22,9 +22,9 @@ tsplot(AirPassengers, col=4, lwd=2)
 spec.boots(AirPassengers, 1000, c(5,5))
 ```
 
-![AirPassengers][img/AirPassengers.png]
+![AirPassengers](img/AirPassengers.png)
 
-![Bootstrap Spectrum][img/AirPassengersSpec.png]
+![Bootstrap Spectrum](img/AirPassengersSpec.png)
 
 # References
 
