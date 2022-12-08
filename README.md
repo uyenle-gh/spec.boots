@@ -19,7 +19,7 @@ The algorithm is as follows:
 
 2. Initial Estimate: Compute the periodogram $I(\omega_k) for $k=1, \dots, n$ and a smoothed spectral density $\hat{f}(\omega_k, h) where $h > 0$ is a global bandwidth not dependent on $\omega$.
 
-3. Compute and Rescale Residuals: Compute the residuals $\hat{\epsilon}_k = \frac{I(\omega_k)}{\hat{f}(\omega_k, h)}$ for $k = 1, \dots, n$ and rescale by dividing by the mean residual.
+3. Compute and Rescale Residuals: Compute the residuals $\hat{\epsilon}_k$ = \frac{I(\omega_k)}{\hat{f}(\omega_k, h)}$ for $k = 1, \dots, n$ and rescale by dividing by the mean residual.
 
 4. Bootstrap Residuals: Resample the residuals $\hat{\epsilon}_1, \dots, \hat{\epsilon}_n$ to get $\hat{\epsilon}_1^*, \dots, \hat{\epsilon}_n^*$. 
 
