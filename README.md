@@ -24,9 +24,6 @@ spec.boots(AirPassengers, 1000, c(5,5))
 
 # References
 
-\itemize
-{
-\item Franke, J., and W. Hardle. “On Bootstrapping Kernel Spectral Estimates.” The Annals of Statistics, vol. 20, no. 1, 1992, pp. 121–45. JSTOR, http://www.jstor.org/stable/2242153.
+Franke, J., and W. Hardle. “On Bootstrapping Kernel Spectral Estimates.” The Annals of Statistics, vol. 20, no. 1, 1992, pp. 121–45. JSTOR, http://www.jstor.org/stable/2242153.
 
-\item Zoubir, Abdelhak M.. “Bootstrapping spectra: Methods, comparisons and application to knock data”. Signal Process. 90, 5. May, 2010, 1424–1435. https://doi.org/10.1016/j.sigpro.2009.11.030.
-}
+Zoubir, Abdelhak M.. “Bootstrapping spectra: Methods, comparisons and application to knock data”. Signal Process. 90, 5. May, 2010, 1424–1435. https://doi.org/10.1016/j.sigpro.2009.11.030.
