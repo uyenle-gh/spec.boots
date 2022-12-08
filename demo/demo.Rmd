@@ -1,0 +1,203 @@
+---
+title: "Final Project: Spectral Density Bootstrap"
+output: html_document
+date: 2022-12-4
+author: Uyen Le 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(devtools)
+require(astsa) #Library for book
+require(xts)
+require(dplyr)
+require(car)
+require(stats)
+require(Stat2Data) # Library for dataset
+```
+
+# Spectral Density Bootstrap 
+
+## Exploration and Simulation 
+
+Here we replicate the paper's work by bootstrapping the spectral density of the autoregressive process 
+$$X_t = 0.5X_{t-1} - 0.6X_{t-2} + 0.3X_{t-3} - 0.4X_{t-4} + 0.2X_{t-5} + N_t$$
+using the given bootstrap algorithm: 
+
+```{r}
+set.seed(505)
+x1 = arima.sim(n=256, list(ar=c(0.5, -0.6, 0.3, -0.4, 0.2)))
+tsplot(x1, col=4)
+mvspec(x1, col=4)
+mvspec(x1, spans=c(2,2), col=4)
+mvspec(x1, spans=c(2,2), log="yes", col=2)
+spec = arma.spec(ar=c(0.5, -0.6, 0.3, -0.4, 0.2), main="Autoregression")
+```
+
+Usually, we can only create a confidence interval for our spectral density by using `mvspec` with the `log` option. The confidence interval is based on a Chi-square distribution with only 2 degress of freedom. Thus, the interval is too wide and of little use. Therefore, in this work, we will try using a bootstrap approach to create more accurate spectral density estimates. 
+
+The following step is to extract the size and frequency of the data. 
+
+```{r}
+xfreq = frequency(x1)
+n = length(x1)
+nspec = floor(n/2)
+freq = seq(from = xfreq/n, by = xfreq/n, length = nspec) # extract the frequency 
+```
+
+First step in the algorithm is centering the data by subtracting the sample mean. However, since we will compare with the true spectral density of the autoregression later, we will skip this step and compute the periodogram and spectral density of the true data. 
+
+The second step produces the initial estimate of the periodogram and an estimated spectral density with a kernel $K$ and a global bandwidth $h$. The paper defines the periodogram to be 
+$$I(\omega) = \frac{1}{2\pi n} \Big| \sum_{t=1}^n x_t e^{-it \omega} \Big|$$ 
+for $\omega_j = 2\pi j/n, -n \leq j \leq n, -\pi \leq \omega_j\leq \pi$.  
+The formula is, indeed, equivalent to our book's definition of the periodogram
+$$I(\omega_j) = |d(\omega_j)|^2 = \frac{1}{n} \Big| \sum_{t=1}^n x_t e^{-2\pi i \omega_j t} \Big|$$
+for $j = 0,1,\dots, n-1$ since $\omega = 2\pi j/n$, but in different domains. Thus, we will the book's code to compute the periodogram $I$. Everything we does after this will be in the frequency domain. 
+
+```{r}
+I = Mod(fft(x1)/sqrt(100))^2
+I = I[1:floor(n/2)] # since I is symmetric, we will keep the first half
+tsplot(freq, I, col=4)
+```
+Consequently, the paper chooses an inital bandwidth and a kernel to calculate the estimated spectral density 
+$$\hat{f}(\omega,h) = \frac{1}{nh} \sum_{k =-n}^n K \Big(\frac{\omega-\omega_k}{h} \Big) I(\omega).$$
+where $K(\cdot)$ is a given symmetric, nonnegative function on the real values. It is noted that the inital global bandwidth should not depend on $\omega$. The paper chooses the Barlett kernel with a global bandwidth of 0.05. In our exploration, we will work with the Daniell kernel of spans `c(5,5)`. The next cell gives a demonstration of the kernel weights and how we use the kernel to get the smoothed spectral density. 
+
+```{r}
+(dm = kernel("modified.daniell", c(5,5))) # for a list 
+par(mfrow=1:2)
+plot(kernel("daniell", 5), ylab=expression(h[~k]), col=4, panel.first=Grid(nxm=5))
+plot(dm, ylab=expression(h[~k]), panel.first=Grid(), col=4) # for a plot 
+```
+
+```{r}
+h = c(5,5)  # initial bandwidth 
+kd = kernel("daniell", h) 
+f.hat = kernapply(I, kd, circular=TRUE)
+tsplot(freq, f.hat, col=4)
+```
+
+Our next step is to estimate the residuals 
+$$\hat{\epsilon} = \frac{I(\omega_k)}{\hat{f}(\omega_k,h_i)},$$
+for $k = 1, \dots, n$. This results from the interpretation of the spectral estimator as the approximate multiplicative regression 
+$$I(\omega_k) = \hat{f}(\omega_k) \cdot \epsilon_k.$$
+Then the paper recenters the data to avoid an additional bias in the resampling stage by rescaling the residuals 
+$$\tilde{e}_k = \frac{\hat{\epsilon_k}}{\epsilon}, \text{ for } k=1, \dots, n, \text{ and } \epsilon = \frac{1}{n} \sum_{k=1}^n \hat{\epsilon}_k.$$ 
+
+```{r}
+eps = I / f.hat
+scaled_eps = eps / mean(eps)
+mean(scaled_eps)
+```
+
+The mean of the scaled residuals should be 1. 
+
+Now resample the scaled residuals and run boostrap estimate for a large number of times. 
+The resampled periodogram is computed as 
+$$I^*(\omega_k) = I^*(-\omega_k) = \hat{f}(w_k,g) \tilde{\epsilon_k}^*$$ 
+where $g$ is a resampling bandwidth and $\{\epsilon_k^*\}$ is a resample of the scaled residuals. We will pick $g$ to be the same as the global bandwidth. Then the bootstrap kernel spectral density is calculated as
+$$\hat{f}(\omega,h,g) = \frac{1}{nh}\sum_{k=-n}^{n}K \Big(\frac{\omega-\omega_k}{h} \Big) I^*(\omega_k)$$
+
+```{r}
+nboot = 1000
+f.star.dist = c(c())
+for (i in 1:nboot)
+{
+  scaled_eps.star = sample(scaled_eps, replace=TRUE)  # resample the scaled residuals 
+  # new kernel 
+  g = sample(1:5, 1)
+  kd.star = kernel("daniell", c(g,g))
+  # another estimated spectral density with the new kernel
+  f.hat = kernapply(I, kd.star, circular = TRUE)
+  # resampled periodogram
+  I.star = f.hat * scaled_eps.star
+  # bootstrap kernel spectral density
+  f.star = kernapply(I.star, kd, circular=TRUE)
+  f.star.dist[i] = list(f.star)
+}
+
+lwr = c()
+upr = c()
+for (i in 1:nspec)
+{
+  f.star.wi = c()
+  for (j in 1:nboot)
+  {
+    f.star.wi[j] = f.star.dist[[j]][i]
+  }
+  # the 2.5 percentile spectral density at all frequencies
+  lwr[i] = quantile(f.star.wi, probs=c(.25, .75))[1]
+  # the 97.5 percentile spectral density at all frequencies
+  upr[i] = quantile(f.star.wi, probs=c(.25, .75))[2]
+}
+```
+
+
+```{r}
+arma.spec(ar=c(0.5, -0.6, 0.3, -0.4, 0.2), main="Autoregression", ylim=c(0, max(upr,max(spec$spec))))
+tsplot(freq, I, col=4)
+lines(freq, upr, col=2)
+lines(freq, lwr, col=2)
+```
+
+## Build an R Package
+
+From the previous exploration, I build my first R package to bootstrap spectral density based on resampling the periodogram. You can find the complete package here: https://github.com/uyenle-gh/spec.boots
+
+The following chunk installs the package into your environment. 
+
+```{r, include=FALSE}
+devtools::install_github("uyenle-gh/spec.boots")
+library(spec.boots)
+```
+
+Now we will apply our `spec.boots` function to produce a confidence interval for the spectral density of the autoregression: 
+
+```{r}
+kd = kernel("daniell", c(5,5))
+spec = spec.boots(x1, 1000, kd, demean=FALSE, alpha=0.95)
+```
+
+Most of the power is concentrated from frequency 0.13 to frequency 0.23, where the 95% confidence interval is above the median baseline. This allows us to conclude that the peak we observe around frequency 0.18 is different from the baseline and is statistically significant. 
+
+Another example where we know the exact frequencies is demonstrated below:
+
+```{r}
+y1 = 2*cos(2*pi*1:100*6/100) + 3*sin(2*pi*1:100*6/100)
+y2 = 4*cos(2*pi*1:100*10/100) + 5*sin(2*pi*1:100*10/100)
+y3 = 6*cos(2*pi*1:100*40/100) + 7*sin(2*pi*1:100*40/100)
+y = y1 + y2 + y3
+y = ts(y)
+spec.boots(y, 1000, kernel("daniell", c(2,2)))
+```
+
+The spectral density plot of this example shows two peaks around frequency 0.1 and 0.4. The confidence interval corresponding to frequency 0.1 is slightly above the median baseline, so we suspect that this frequency only has a small effect. 
+
+## Applications
+
+In the next few chunks, we demonstrate how to use `spec.boots` with real data and compare the result with those produced by the `mvspec` command. 
+
+```{r}
+data("AirPassengers")
+tsplot(AirPassengers, col=4, lwd=2)
+mvspec(AirPassengers, col=4, lwd=2)
+mvspec(AirPassengers, log='y', col=4, lwd=2)
+mvspec(AirPassengers, log='y', spans=c(4,4), col=4, lwd=2)
+spec.boots(AirPassengers, 1000, c(5,5))
+```
+
+For the `AirPassengers` dataset, it seems like both the `mvspec` and `spec.boots` functions agree that frequencies 1 and 2 are dominant. However, it is way more obvious looking at the plot of `spec.boots`. 
+
+```{r}
+data(Inflation)
+tsplot(Inflation$CPIPctDiff, col=4, lwd=2)
+mvspec(Inflation$CPIPctDiff, col=4, lwd=2)
+mvspec(Inflation$CPIPctDiff, col=4, lwd=2, log="y")
+mvspec(Inflation$CPIPctDiff, col=4, lwd=2, log="y", spans=c(4,4))
+
+kd = kernel("daniell", c(5,5))
+spec.boots(ts(Inflation$CPIPctDiff) , 1000, kd)
+```
+
+The spectral density of the CPI returns peaks around frequency 0.1 for both datasets. Here, it is easier to tell which frequencies matter since we have a baseline to rely on. One drawback to this approach, as you can also tell from the two plots of `spec.boots` and `mvspec`, is that some of the peaks are flattened and spread out to others due to averaging. 
+
